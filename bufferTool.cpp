@@ -1,6 +1,5 @@
 #include "bufferTool.h"
 
-#include <gdbm.h>
 #include <assert.h>
 #include <string.h>
 
