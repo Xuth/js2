@@ -107,6 +107,7 @@ extern int endLoc;
 extern int totSize;
 extern int concurrent;
 extern int winOnly;
+extern int hexPrint;
 extern int useLetters;
 extern int noGraph;
 extern int useLabels;

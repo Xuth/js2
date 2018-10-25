@@ -257,6 +257,9 @@ int readParms(int argc, char *argv[]) {
 	else if (EatString(&sptr, "NUMTHREADS:", 0)) {
 	    EatInt(&sptr, &numThreads, 1);
 	}
+	else if (EatString(&sptr, "HEXPRINT:", 0)) {
+	    hexPrint = 1;
+	}
 #if 0
 	else if (EatString(&sptr, "USELABELS:", 0)) {
 	    useLabels = 1;

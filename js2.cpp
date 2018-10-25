@@ -36,6 +36,7 @@ int totSize;
 int concurrent = 0;
 int winOnly = 0;
 int useLetters = 0;
+int hexPrint = 0;
 int noGraph = 0;
 int bigmem = 4000000000;
 int smallmem = 2000000;
@@ -148,16 +149,29 @@ void WorkerThread::printBoard() {
     for (int y = 0; y < ysize; ++y) {
 	for (int x = 0; x < xsize; ++x) {
 	    int pieceNum = workBoard[x + y * xsize];
-	    switch(pieceNum) {
-	    case WALL_CHAR:
-		printf("# ");
-		break;
-            case SPACE_CHAR:
-		printf("  ");
-		break;
-            default:
-		printf("%c ", pieceNum2Char(pieceNum));
-            }
+	    if (hexPrint) {
+		switch(pieceNum) {
+		case WALL_CHAR:
+		    printf("## ");
+		    break;
+		case SPACE_CHAR:
+		    printf("   ");
+		    break;
+		default:
+		    printf("%02x ", pieceNum);
+		}
+	    } else {
+		switch(pieceNum) {
+		case WALL_CHAR:
+		    printf("# ");
+		    break;
+		case SPACE_CHAR:
+		    printf("  ");
+		    break;
+		default:
+		    printf("%c ", pieceNum2Char(pieceNum));
+		}
+	    }
 	}
 	printf("\n");
     }
