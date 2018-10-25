@@ -269,8 +269,15 @@ void TaskManager::lookForWork_stage_1(int sg) {
 	    for (int g = 0; g < gCount; ++g) {
 		BGroupStat bgStat;
 		bufMan.getGroupStat(BufferId(sg, curStep, ml, g), &bgStat);
-		test((bgStat.status == SEQ_DELETED || bgStat.status == SEQ_FINISHED),
-		     "improper status of group before doing final merge");
+		if (bgStat.status != SEQ_DELETED && bgStat.status != SEQ_FINISHED) {
+		    printf("improper status (%d) of group before doing final merge\n", bgStat.status);
+		    printf("bufferId: ");
+		    BufferId(sg, curStep, ml, g).print();
+		    printf("\n");
+		    cleanup();
+		    exit(0);
+		}
+		     
 	    }
 	}
 	TaskItem ti;
