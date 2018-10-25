@@ -8,7 +8,20 @@ TaskQueue JobQueue;
 TaskQueue DoneQueue;
 
 void cleanup() {
-    exit(0);
+    // first empty anything on the job queue
+    while(1) {
+	TaskItem t = JobQueue.getNoWait();
+	if (t.type == TaskItem::None)
+	    break;
+    }
+    for (int i = 0; i < numThreads; ++i) {
+	TaskItem t;
+	t.type = TaskItem::Shutdown;
+	JobQueue.add(t);
+    }
+
+    for (int i = 0; i < numThreads; ++i)
+	threads[i].join();
 }
 
 int startLevel(unsigned int stepGroup, unsigned int step) {
@@ -94,7 +107,7 @@ void TaskManager::run() {
 		// I suppose I could get hints for how to look for work
 	    } else if (t.type == TaskItem::FoundWin) {
 		//printf("taskMan got FoundWin\n");
-		handleWin();
+		handleWin(t);
 	    } else {
 		//printf("taskMan got other item (%d)\n", (int)t.type);
 	    }
@@ -219,6 +232,10 @@ void TaskManager::lookForWork_stage_1(int sg) {
     if (stragglerCount[sg] == 0) {
 	printf("no positions generated!");
 	cleanup();
+
+	WorkerThread w;
+	w.printBuffer(bufMan.finalBufId(sg, curStep-1));
+	exit(0);
     } else if (stragglerCount[sg] > 1) {  // do the final straggler merge
 	TaskItem ti;
 	ti.type = TaskItem::MergeGroups;
@@ -267,7 +284,7 @@ void TaskManager::lookForWork_stage_1(int sg) {
 	    ti.dedup.gen[1] = BufferId(0,0,0,0,0,1);
 	}
 	bufMan.setGroupStatus(ti.dedup.inp, SEQ_MERGING);
-	bufMan.startBufferGroup(ti.dedup.out);
+	bufMan.startBufferGroup(ti.dedup.out, 1);
 	JobQueue.add(ti);
     }
 }
@@ -278,7 +295,7 @@ void TaskManager::lookForWork_stage_2(int sg) {
 	return;
 
     workStage[sg] = 3;
-    
+
     // we have the final buffer group for the generation.  Divide it up into parts
     // and check for wins.
     BufferId bId = bufMan.finalBufId(BufferId(sg, curStep));
@@ -286,7 +303,13 @@ void TaskManager::lookForWork_stage_2(int sg) {
     test(bufMan.getGroupStat(bId, &bgStat), "Can't get group stats in lookforwork_stage_2");
 
     uint64_t positions = bgStat.positions;
-    test(positions > 0, "0 positions in final merge step in stage_2");
+    if (positions == 0) {
+	printf("0 positions in final merge step in stage_2\n");
+	cleanup();
+	WorkerThread w;
+	w.printBuffer(bufMan.finalBufId(sg, curStep-1));
+	exit(0);
+    }
 
     //printf("*****STEP_POSITIONS Step %u: %lu positions\n", curStep, positions);
     
@@ -313,7 +336,7 @@ void TaskManager::lookForWork_stage_2(int sg) {
 	processTasksOutstanding[sg]++;
 	positions -= boardsPerTask;
 	if (positions == 0)
-	    return;
+	    break;
 	offset += boardsPerTask;
 	if (offset >= bufPos) {
 	    offset -= bufPos;
@@ -322,7 +345,16 @@ void TaskManager::lookForWork_stage_2(int sg) {
 	    bufPos = bStat.positions;
 	}
     }
-    test(0, "unreachable stage_2");
+
+    if (winOnly) {
+	// delete the buffer from 2 steps ago.  It is no longer needed
+	if (curStep > 1) {
+	    TaskItem t;
+	    t.type = TaskItem::DeleteGroup;
+	    t.del = TaskDelete(bufMan.finalBufId(sg, curStep-2));
+	    JobQueue.add(t);
+	}
+    }
 }
 
 void TaskManager::lookForWork_stage_3(int sg) {
@@ -331,9 +363,16 @@ void TaskManager::lookForWork_stage_3(int sg) {
 }
 
 // what do we do when we find a winning position
-void TaskManager::handleWin() {
+void TaskManager::handleWin(TaskItem t) {
     printf("found win!!!\n");
+
+    cleanup();
+
+    WorkerThread w;
+    w.printBuffer(t.foundWin.bId, t.foundWin.offset, 1);
+
     exit(0);
+    
 }
 
 

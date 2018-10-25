@@ -5,6 +5,8 @@
 
 #include <stdint.h>
 #include <time.h>
+#include <vector>
+#include <thread>
 
 // things to get rid of
 #define MAX_PIECE 250
@@ -83,12 +85,11 @@ struct PieceDef {
 
 
 /* the following are puzzle defining globals */
+// most are filled in when reading parameters.
 extern PieceTypeDef *pieceTypes;
 extern PosType *posTypePool;
 extern PieceDef *piece;
 extern PosType *startLocs;   // starting locations for each piece
-
-
 
 
 extern WinList winList;
@@ -130,6 +131,7 @@ extern PieceTypeType uncompressMask;
 
 extern BufferManager bufMan;
 
+extern std::vector<std::thread> threads;
 
 // all of the CompressTool routines are very specific to the WorkerThread routines.
 struct CompressTool {

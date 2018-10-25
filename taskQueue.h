@@ -120,6 +120,17 @@ public:
 	return val;
     }
     
+    TaskItem getNoWait(void) {
+	std::unique_lock<std::mutex> lock(m);
+	if (q.empty()) {
+	    TaskItem ret;
+	    return ret;
+	}
+	TaskItem val = q.front();
+	q.pop();
+	return val;
+    }
+    
 };
 
 extern TaskQueue JobQueue;

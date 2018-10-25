@@ -23,7 +23,7 @@ class TaskManager {
 public:
     void run();
 private:
-    void handleWin();
+    void handleWin(TaskItem t);
     int lookForWork();
     void lookForWork_stage_1(int sg);
     void lookForWork_stage_2(int sg);

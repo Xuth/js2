@@ -1,7 +1,6 @@
 #ifndef bufferTool_h
 #define bufferTool_h
 
-//#include <gdbm.h>
 #include <map>
 #include <vector>
 #include <mutex>
@@ -9,7 +8,7 @@
 extern size_t bufferSize;
 
 struct BufferId {
-    // used to uniquely ID any buffer and as the keys for the gdbm file
+    // used to uniquely ID any buffer and as the keys for a dbm file should I try using such a thing
     // these are instantiated out of logical order for packing efficiency
     //
     // logical hierarchy:
@@ -58,6 +57,8 @@ struct BufferInfo {
     uint8_t *memLoc;  // where this is in memory or NULL if only on disk
     int accessors;  // number of threads currently reading this segment
     BufStatus status; // if this is accessed with a status of BUF_PROCESSING, wait until settled
+    off_t offset;   // offset in the file if saved to disk
+    
     BufferInfo(size_t cLen, uint64_t pos) {
 	compressedLen = cLen;
 	positions = pos;
@@ -73,8 +74,9 @@ struct BufferSequence {
     std::vector<BufferInfo> bufferList;
     uint64_t positions;
     SeqStatus status;
+    char fullStep;
 
-    BufferSequence() { positions = 0; status = SEQ_WORKING; }
+    BufferSequence(int fullStep_=0) { positions = 0; status = SEQ_WORKING; fullStep = fullStep_;}
 };
 
 struct MergeLevel {
@@ -100,6 +102,7 @@ struct BGroupStat {
     size_t bufCount;
     uint64_t positions;
     SeqStatus status;
+    char fullStep;  // is this the final buffer group
 };
     
 
@@ -134,6 +137,11 @@ class BufferManager {
     // any thread that reads or writes to gdbm.  (we can get rid of this if we
     // change to using a separate file for each buffer group
     std::mutex gdbmMutex;
+
+    // when we need to start saving positions to disk we save final buffers to the stepFH
+    // and temporary buffers to the tmpFH.  ideally tmpFH isn't needed...
+    int stepFH = -1;
+    int tmpFH = -1;
     
 public:
     /* 
@@ -160,13 +168,14 @@ public:
     int appendBufferGroup(BufferId *bId);
 
     // or start a new buffer group by specifying the buffer ID
-    int startBufferGroup(BufferId bId);
+    int startBufferGroup(BufferId bId, int fullStep=0);
 
     int insertBuffer(BufferId bId, uint8_t *data, size_t len, uint64_t postions);
     void setGroupFinished(BufferId bId);
     
     // setting statuses  (setGroupFinished() could go here too)
     void setGroupStatus(BufferId bId, SeqStatus s);
+    void setGroupFullStep(BufferId bId);  // set that this group is the final merge group of the step after all dup removal
     
 
     // getting info

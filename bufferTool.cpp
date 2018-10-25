@@ -23,7 +23,7 @@ size_t BufferManager::memAvail() {
     return availMem;
 }
 
-int BufferManager::startBufferGroup(BufferId bId) {
+int BufferManager::startBufferGroup(BufferId bId, int fullStep) {
     std::lock_guard<std::mutex> lock(bufDirMutex);
     
     std::vector<StepBuffer> &sl = stepList[bId.stepGroup];
@@ -40,7 +40,7 @@ int BufferManager::startBufferGroup(BufferId bId) {
     MergeLevel &level = step.levelList[bId.mergeLevel];
     
     assert(bId.group == level.sequenceList.size());
-    level.sequenceList.emplace_back();
+    level.sequenceList.emplace_back(fullStep);
 
     return 1;
 }
@@ -265,6 +265,7 @@ int BufferManager::getGroupStat(BufferId bId, BGroupStat *bgStat) {
     bgStat->bufCount = seq.bufferList.size();
     bgStat->positions = seq.positions;
     bgStat->status = seq.status;
+    bgStat->fullStep = seq.fullStep;
     return 1;
 }
 

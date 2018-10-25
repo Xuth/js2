@@ -55,14 +55,16 @@ PieceTypeType uncompressMask;
 
 BufferManager bufMan;
 
+WorkerThread *workerList;
+std::vector<std::thread> threads;
+
 int main(int argc, char *argv[]) {
     time(&startTime);
     
     readParms(argc, argv);
     doInits();
 
-    WorkerThread *workerList = new WorkerThread[numThreads];
-    std::vector<std::thread> threads;
+    workerList = new WorkerThread[numThreads];
     for (int i = 0; i < numThreads; ++i) {
 	printf("starting thread %d\n", i);
 	threads.emplace_back(&WorkerThread::run, &workerList[i]);
@@ -70,17 +72,6 @@ int main(int argc, char *argv[]) {
 
     TaskManager taskMan;
     taskMan.run();
-    
-    
-    for (int i = 0; i < numThreads; ++i) {
-	TaskItem t;
-	t.type = TaskItem::Shutdown;
-	JobQueue.add(t);
-    }
-
-    
-    for (int i = 0; i < numThreads; ++i)
-	threads[i].join();
     
 }
 
@@ -870,12 +861,10 @@ int WorkerThread::checkWin(BufferId inBId, uint64_t offset, uint64_t count) {
     INIT_CRCT(crct);
     crct.start(inBId);
 
-    while(offset) {
+    for (uint64_t i = 0; i < offset; ++i)
 	crct.getNext();
-	offset--;
-    }
 	
-    for (unsigned int i = 0; i < count; ++i) {
+    for (uint64_t i = 0; i < count; ++i) {
 	uint8_t *in = crct.getNext();
 	test(in != NULL, "failed to get an requested buffers to check for win");
 
@@ -884,6 +873,11 @@ int WorkerThread::checkWin(BufferId inBId, uint64_t offset, uint64_t count) {
 
 	if (checkIfWin()) {
 	    printf("checkWin(): found winning board!!!\n");
+
+	    TaskItem t;
+	    t.type = TaskItem::FoundWin;
+	    t.foundWin = TaskFoundWin(inBId, offset + i);  // this might span into the next buffer but that's ok
+	    DoneQueue.add(t);
 	    return 1;
 	}
 
@@ -962,6 +956,11 @@ void WorkerThread::run() {
 	    DoneQueue.add(t);  // these responses are explicitly counted to know when this part is finished.
 	    break;
 
+	case TaskItem::DeleteGroup:
+	    bufMan.deleteBufferGroup(t.del.bId);
+	    DoneQueue.add(t);
+	    break;
+	    
 	case TaskItem::Shutdown:
 	    shutdown = 1;
 	    printf("got shutdown request\n");
