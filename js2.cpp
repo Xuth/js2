@@ -132,6 +132,12 @@ void WorkerThread::copyToCurLoc(PosType *locs) {
     memcpy(curLoc, locs, numPiece * sizeof(PosType));
 }
 
+int posX(int xyPos) {
+    return xyPos % xsize - 1;
+}
+int posY(int xyPos) {
+    return xyPos / xsize - 1;
+}
 void WorkerThread::initBoardFromLocs() {
     memcpy(workBoard, baseBoard, totSize * sizeof(PieceIdType));
     for (int i = 0; i < numPiece; ++i) {
@@ -139,7 +145,13 @@ void WorkerThread::initBoardFromLocs() {
 	PieceTypeDef *ptd = &pieceTypes[piece[i].pType];
 	for (int j = 0; j < ptd->numBloc; ++j) {
 	    int offset = startOffset + ptd->xyoffset[j];
-	    test(workBoard[offset] == SPACE_CHAR, "initial positions overlap");
+	    if (workBoard[offset] != SPACE_CHAR) {
+		printf("initial positions overlap\n");
+		printf("offending piece at (%d, %d) ", posX(offset), posY(offset));
+		printf("overlaps at (%d, %d)\n", posX(offset+ptd->xyoffset[j]), posY(offset+ptd->xyoffset[j]));
+		exit(0);
+	    }
+
 	    workBoard[offset] = i;
 	}
     }
