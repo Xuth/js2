@@ -38,8 +38,8 @@ int winOnly = 0;
 int useLetters = 0;
 int hexPrint = 0;
 int noGraph = 0;
-int bigmem = 4000000000;
-int smallmem = 2000000;
+long int bigmem = 4000000000;
+long int smallmem = 2000000;
 int directed;
 int cutoffStep;
 int checkFullTree;
@@ -105,7 +105,7 @@ WorkerThread::WorkerThread() {
     size_t boardMemSize = totSize * sizeof(PieceIdType);
     size_t placedMemSize = BITNSLOTS(numPiece);
     
-    size_t size = locMemSize + boardMemSize + placedMemSize + smallmem;
+    size_t size = locMemSize + locListMemSize + boardMemSize + placedMemSize + smallmem;
 
     char *mem = (char *)malloc(size);
     test(mem != NULL, "Can't malloc in WorkerThread");
@@ -541,7 +541,7 @@ void WorkerThread::TryMove(int direction) {
 
 
 void WorkerThread::enqueueBoard() {
-    if (writePtr - posBuffer - writePtrOffset >= maxEntriesPerBuf)
+    if (writePtr - posBuffer + compressedPuzSize >= smallmem) 
 	insertBuffer();
     compressBoard();
 }
@@ -579,7 +579,7 @@ int CompressTool::compressDedupAdd(uint8_t *pos, int first) {
     if (b > 254)  // if true we need space for the full length copy
 	entryLen += sizeof(CompressLenType);
     entryLen += compressedPuzSize - b;  // and the non-duplicate bytes
-    if (r + entryLen > end)
+    if (r + entryLen >= end)
 	return 0;
     
     if (b > 254) {
@@ -851,7 +851,7 @@ void WorkerThread::dedupGen(BufferId inBId, BufferId *genBIds, int genCount, Buf
 		bufMan.insertBuffer(outBId, posBuffer, outCt.r-posBuffer, outPos);
 		outBId.buf++;
 		outCt.initOutBuf(posBuffer, smallmem);
-		test(1 == outCt.compressDedupAdd(inBuf, 1), "failed to add to new buffer in merge");
+		test(1 == (res = outCt.compressDedupAdd(inBuf, 1)), "failed to add to new buffer in merge");
 		outPos = 1;
 	    } else {
 		outPos++;

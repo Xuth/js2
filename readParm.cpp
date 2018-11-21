@@ -249,10 +249,10 @@ int readParms(int argc, char *argv[]) {
 	    noGraph = 1;
 	}
 	else if (EatString(&sptr, "BIGMEM:", 0)) {
-	    EatInt(&sptr, &bigmem, 1);
+	    EatLong(&sptr, &bigmem, 1);
 	}
 	else if (EatString(&sptr, "SMALLMEM:", 0)) {
-	    EatInt(&sptr, &smallmem, 1);
+	    EatLong(&sptr, &smallmem, 1);
 	}
 	else if (EatString(&sptr, "NUMTHREADS:", 0)) {
 	    EatInt(&sptr, &numThreads, 1);
@@ -561,6 +561,29 @@ int EatInt(char **sptr, int *iptr, int critical) {
     for (cptr = *sptr; *cptr && (*cptr <= ' '); ++cptr);
     
     *iptr = atoi(cptr);
+    if (*cptr == '-')
+	++cptr;
+    
+    if (!isdigit(*cptr)) {
+	if (critical) {
+	    printf("Expected a numeric at %s\n", cptr);
+	    exit(1);
+	}
+	else
+	    return 0;
+    }
+
+    for (; isdigit(*cptr); ++cptr);
+    *sptr = cptr;
+    return 1;
+}
+
+int EatLong(char **sptr, long *iptr, int critical) {
+    char *cptr;
+    
+    for (cptr = *sptr; *cptr && (*cptr <= ' '); ++cptr);
+    
+    *iptr = atol(cptr);
     if (*cptr == '-')
 	++cptr;
     

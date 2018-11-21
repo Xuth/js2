@@ -50,6 +50,7 @@ void calcMoveToFrom(PieceTypeDef *curType);
 
 int EatString(char **sptr, const char *cstr, int critical);
 int EatInt(char **sptr, int *iptr, int critical);
+int EatLong(char **sptr, long *iptr, int critical);
 int EatPair(char **sptr, int *i1ptr, int *i2ptr, int critical);
 int EatQuotedChar(char **sptr, char *cptr, int critical);
 void validateIPiece(IPieceDef *iPiece);

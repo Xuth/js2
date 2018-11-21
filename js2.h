@@ -114,8 +114,8 @@ extern int useLabels;
 extern int directed;
 extern int cutoffStep;
 extern int checkFullTree;
-extern int bigmem;
-extern int smallmem;
+extern long int bigmem;
+extern long int smallmem;
 extern int numThreads;
 extern unsigned int maxEntriesPerBuf;
 
