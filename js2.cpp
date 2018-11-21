@@ -44,7 +44,6 @@ int directed;
 int cutoffStep;
 int checkFullTree;
 int numThreads = 3;
-unsigned int maxEntriesPerBuf;
 
 PieceIdType *baseBoard;
 

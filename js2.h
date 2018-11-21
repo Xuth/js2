@@ -117,7 +117,6 @@ extern int checkFullTree;
 extern long int bigmem;
 extern long int smallmem;
 extern int numThreads;
-extern unsigned int maxEntriesPerBuf;
 
 #if 0
 // no longer relevant

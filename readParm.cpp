@@ -311,8 +311,6 @@ int readParms(int argc, char *argv[]) {
     if ((bitsPerType * (numPiece + numSpace)) % 8)
 	++compressedPuzSize;
 
-    maxEntriesPerBuf = smallmem / compressedPuzSize;
-   
     for (a = 0; a < winList.numWinCond; ++a) {
 	winList.winCond[a].posXY = (winList.winCond[a].posY + 1) 
 	    * xsize + winList.winCond[a].posX + 1;
@@ -343,8 +341,8 @@ int readParms(int argc, char *argv[]) {
     printf("endLoc - %d\n", endLoc);
     printf("totSize - %d\n", totSize);
     printf("concurrent - %d\n", concurrent);
-    printf("maxNewPos - %d\n", maxNewPos);
-    printf("maxEntriesPerSl - %d\n", maxEntriesPerSl);
+//    printf("maxNewPos - %d\n", maxNewPos);
+//    printf("maxEntriesPerSl - %d\n", maxEntriesPerSl);
 #endif
 
 
