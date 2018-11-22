@@ -227,8 +227,10 @@ void BufferManager::deleteBufferGroup(BufferId bId) {
     
     for (unsigned int i = 0; i < seq.bufferList.size(); ++i) {
 	BufferInfo &buf = seq.bufferList[i];
-	if (buf.memLoc)
+	if (buf.memLoc) {
 	    free(buf.memLoc);
+	    freeMem(buf.compressedLen);
+	}
 	if ((buf.status == BUF_ONDISK) ||
 	    (buf.status == BUF_DISKONLY)) {
 	    assert(0);
