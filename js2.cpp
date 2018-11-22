@@ -11,6 +11,11 @@
 #include <thread>
 #include <vector>
 
+char TITLE_TXT[] = "js2 (formerly jim'slide)";
+char VERSION_TXT[] = "version 1.5";
+char COPYRIGHT_TXT[] = "copyright Jim Leonard (Xuth) 1999 - 2018";
+char LICENSE_TXT[] = "this code may be distributed under the BSD 4-Clause License";
+
 // puzzle defining globals
 PieceTypeDef *pieceTypes;
 PosType *posTypePool;
@@ -60,6 +65,11 @@ std::vector<std::thread> threads;
 
 int main(int argc, char *argv[]) {
     time(&startTime);
+    printf("%s\n", TITLE_TXT);
+    printf("%s\n", VERSION_TXT);
+    printf("%s\n", COPYRIGHT_TXT);
+    printf("%s\n", LICENSE_TXT);
+    setvbuf(stdout, NULL, _IONBF, 0);
     
     readParms(argc, argv);
     doInits();
