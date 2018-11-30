@@ -251,6 +251,7 @@ public:
     int checkWin(BufferId inBId, uint64_t offset, uint64_t count);
     int checkIfWin();
     void dedupGen(BufferId inBId, BufferId *genBIds, int genCount, BufferId outBId);
+    int findDuplicate(BufferId bId1, BufferId bId2, BufferId *outBId, uint64_t *offset);
 };
 
 // effectively assert but prints a potentially useful string if the assert fails

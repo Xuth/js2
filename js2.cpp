@@ -889,7 +889,60 @@ void WorkerThread::dedupGen(BufferId inBId, BufferId *genBIds, int genCount, Buf
     // unreachable
 }	
 	
-	    
+
+// look for duplicates between two sets of buffers.  If no duplicates are found return 0
+// if a duplicate is found return 1 and put the bufferId and offset (from bId1) into outBId and offset.
+int WorkerThread::findDuplicate(BufferId bId1, BufferId bId2, BufferId *outBId, uint64_t *offset) {
+    ComprehensiveReadCompressTool crct1;
+    INIT_CRCT(crct1);
+    crct1.start(bId1);
+    uint8_t *buf1 = crct1.getNext();
+    *offset = 0;
+
+    ComprehensiveReadCompressTool crct2;
+    INIT_CRCT(crct2);
+    crct2.start(bId2);
+    uint8_t *buf2 = crct2.getNext();
+
+//    printf("*** looking for duplicate ***\n");
+    
+    while(1) {
+//	printf("buf1: ");
+//	printCompressed(buf1);
+//	printf("\nbuf2: ");
+//	printCompressed(buf2);
+//	printf("\n");
+	int mc = memcmp(buf1, buf2, compressedPuzSize);
+	if (mc == 0) {
+	    // we found something.  fill out outBId and offset, clean up, and get out of here.
+	    // ok, this is shitty but it works.  Since we don't have a count into the current
+	    // buffer but we have a count from the first buffer, put down the first buffer and offset
+	    // from that.
+	    *outBId = bId1;
+	    // offset already set
+	    return 1;
+	}
+	if (mc < 0) {
+	    buf1 = crct1.getNext();
+	    if (NULL == buf1) {
+		//printf("buf1 empty!\n");
+		break;
+	    }
+	    *offset += 1;
+	} else {
+	    buf2 = crct2.getNext();
+	    if (NULL == buf2) {
+		//printf("buf2 empty!\n");
+		break;
+	    }
+	}
+    }
+    // no duplicates found.  clean up and return 0
+    crct1.finish();
+    crct2.finish();
+    return 0;
+}
+	
 
 int WorkerThread::checkWin(BufferId inBId, uint64_t offset, uint64_t count) {
     ComprehensiveReadCompressTool crct;

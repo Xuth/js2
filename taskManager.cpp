@@ -3,6 +3,7 @@
 #include "taskQueue.h"
 #include "bufferTool.h"
 #include "js2.h"
+#include "showWin.h"
 
 TaskQueue JobQueue;
 TaskQueue DoneQueue;
@@ -375,9 +376,12 @@ void TaskManager::handleWin(TaskItem t) {
 
     cleanup();
 
-    WorkerThread w;
-    w.printBuffer(t.foundWin.bId, t.foundWin.offset, 1);
-
+    if (winOnly) {
+	WorkerThread w;
+	w.printBuffer(t.foundWin.bId, t.foundWin.offset, 1);
+    } else {
+	showWin(t.foundWin.bId, t.foundWin.offset);
+    }
     exit(0);
     
 }
