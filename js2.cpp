@@ -14,7 +14,7 @@
 char TITLE_TXT[] = "js2 (formerly jim'slide)";
 char VERSION_TXT[] = "version 1.5";
 char COPYRIGHT_TXT[] = "copyright Jim Leonard (Xuth) 1999 - 2018";
-char LICENSE_TXT[] = "this code may be distributed under the BSD 4-Clause License";
+char LICENSE_TXT[] = "this code may be distributed under the BSD 4-Clause License included in the file LICENSE";
 
 // puzzle defining globals
 PieceTypeDef *pieceTypes;
@@ -229,7 +229,13 @@ char pieceNum2Char(int pn) {
 void WorkerThread::callRenumber() {
     renumberPieces(workBoard, curLoc);
 }
-    
+
+void WorkerThread::renumberAndFindDiff(PieceIdType *movedPiece, PosType *movedUp, PosType *movedRight) {
+    renumberPieces(workBoard, curLoc);
+    findDiff(curLoc, movedPiece, movedUp, movedRight);
+    resetPrevLoc(curLoc);
+}
+
 void WorkerThread::compressBoard() {
     uint8_t *compressed = writePtr;
     BITRESETALL(placed, numPiece);

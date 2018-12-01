@@ -218,6 +218,7 @@ public:
     void initBoardFromLocs();
     void printBoard();
     void callRenumber();
+    void renumberAndFindDiff(PieceIdType *movedPiece, PosType *movedUp, PosType *movedRight);
     void uncompressBoard(uint8_t *compressed);
     void compressBoard();
     void insertBuffer();
