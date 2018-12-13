@@ -7,6 +7,7 @@
 #include <time.h>
 #include <vector>
 #include <thread>
+#include <inttypes.h>
 
 // things to get rid of
 #define MAX_PIECE 250

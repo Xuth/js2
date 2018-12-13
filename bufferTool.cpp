@@ -2,7 +2,7 @@
 
 #include <assert.h>
 #include <string.h>
-
+#include <inttypes.h>
 
 int BufferManager::useMem(size_t bytes) {
     std::lock_guard<std::mutex> lock(memMutex);
@@ -99,7 +99,8 @@ void BufferId::print() {
 	return;
     }
 
-    printf("<BufferId %u:%u:%u:%u:%u>", stepGroup, step, mergeLevel, group, buf);
+    printf("<BufferId %" PRIu8 ":%" PRIu32 ":%" PRIu16 ":%" PRIu32 ":%" PRIu32 ">",
+	   stepGroup, step, mergeLevel, group, buf);
 }
 
 BufferId BufferManager::finalBufId(uint8_t stepGroup, uint32_t step) {
