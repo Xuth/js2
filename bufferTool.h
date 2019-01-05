@@ -1,54 +1,17 @@
 #ifndef bufferTool_h
 #define bufferTool_h
 
+#include "bufferId.h"
+#include "bufferToolDisk.h"
+#include "bufIdAddOrderSet.h"
+
 #include <map>
 #include <vector>
 #include <mutex>
+#include <condition_variable>
+#include <thread>
 
 extern size_t bufferSize;
-
-struct BufferId {
-    // used to uniquely ID any buffer and as the keys for a dbm file should I try using such a thing
-    // these are instantiated out of logical order for packing efficiency
-    //
-    // logical hierarchy:
-    // stepGroup:    is this a step from beginnning or end for concurrent puzzle solves
-    // step:         which puzzle step are we on
-    // mergeLevel:   which level of buffer merging are we on
-    // group:        a sequence of buffers that can logically be treated as a single buffer
-    // buf:          the individual buffer that is constrained by physical memory size
-    //
-    // nullId:       flag to say that this bufferId is NULL and just a placeholder 
-    
-    uint32_t step;       // which puzzle step
-    uint32_t group;      // which group of buffers within the merge level
-    uint32_t buf;        // which buffer within the group
-    uint16_t mergeLevel; // 
-    uint8_t stepGroup;   // which step group (forward or backward)
-    uint8_t nullId;      // if set to 1 this bufferID is just a placeholder
-
-
-    BufferId(uint8_t stepGroup_=0,
-	     uint32_t step_=0,
-	     uint16_t mergeLevel_=0,
-	     uint32_t group_=0,
-	     uint32_t buf_=0,
-	     uint8_t nullId_=0) {
-	
-	stepGroup = stepGroup_;
-	step = step_;
-	mergeLevel = mergeLevel_;
-	group = group_;
-	buf = buf_;
-	nullId = nullId_;
-    }
-
-    int isNull() {
-	return nullId != 0;
-    }
-    void print();
-};
-
 
 enum BufStatus { BUF_ONDISK, BUF_OFFDISK, BUF_DISKONLY, BUF_PROCESSING };
 struct BufferInfo {
@@ -71,7 +34,9 @@ struct BufferInfo {
 enum SeqStatus { SEQ_WORKING, SEQ_FINISHED, SEQ_MERGING, SEQ_DELETE_QUEUED, SEQ_DELETED };
 
 struct BufferSequence {
-    std::vector<BufferInfo> bufferList;
+    // we regularly wish to hold on to BufferInfos for longer than we'd like to hold on
+    // to the bufDirMutex lock so we've changed this to a vector of pointers.
+    std::vector<BufferInfo *> bufferList;
     uint64_t positions;
     SeqStatus status;
     char fullStep;
@@ -110,21 +75,49 @@ class BufferManager {
     // stepList[0] is advancing forward and [1] is going back
     std::vector<StepBuffer> stepList[2];
     size_t bufMem;
+    SimpleDiskBuffer sdb;
     
     // bufDirMutex needs to be held when manipulating structure of buffer directory.
     // but can be released once you have your leaf node.  If you are going to be
     // making changes to it, it should be marked as in progress before releasing the
     // mutex (and the mutex should be reclaimed before changing the status back)
     std::mutex bufDirMutex;
+    // bufDirCondition should be triggered any time a buffer switches from BUF_PROCESSING to
+    // any other "stable" status.
+    std::condition_variable bufDirCondition;
 
+    // waits for buffer status to be something other than BUF_PROCESSING (using
+    // bufDirCondition).  Returns 1 if the lock had to be released or 0 otherwise
+    int waitForSettledStatus(BufferInfo &b, std::unique_lock<std::mutex> &lock);
+
+    // sets buffer status.  if setting status to something other than BUF_PROCESSING
+    // trigger bufDirCondition.
+    void setBufStatus(BufferInfo &b, BufStatus s);
+    
     // memMutex should be held when looking at or updating availMem.  Use the following
     // accessors
     std::mutex memMutex;
+    // this condition gets triggered when memory is freed.  We wait on this condition
+    // if there is insufficient memory available
+    std::condition_variable memCondition;
+    // this condition is triggered when memory is used.  The caching threads wait on this
+    // condition.
+    std::condition_variable memUsedCondition;
+    
+    // where we keep track of the available memory
     size_t availMem;
+
+    // this is the target amount of memory available.  When availMem goes below targetMem
+    // the caching threads will try to do something about this.
+    size_t targetMem;
+
+    // atomically claim <bytes> of memory from availMem.  If there isn't enough memory available
+    // useMem will wait until there is enough.
+    void useMem(size_t bytes);
 
     // atomically claim <bytes> of memory from availMem (and return 1) or return 0
     // if there isn't enough available.
-    int useMem(size_t bytes);
+    int useMemNoWait(size_t bytes);
     
     // atomically release <bytes> of memory back to availmem.  Always succeeds.
     void freeMem(size_t bytes);
@@ -133,15 +126,19 @@ class BufferManager {
     // memory needs to be freed to save some new buffer.
     size_t memAvail();
 
-    // if/when we start using gdbm as our backing store, this will need held for
-    // any thread that reads or writes to gdbm.  (we can get rid of this if we
-    // change to using a separate file for each buffer group
-    std::mutex gdbmMutex;
+    // returns how much memory is in use beyond the memory target or 0 if the memory used
+    // is less than or equal to the target.
+    size_t targetMemDeficiency();
 
-    // when we need to start saving positions to disk we save final buffers to the stepFH
-    // and temporary buffers to the tmpFH.  ideally tmpFH isn't needed...
-    int stepFH = -1;
-    int tmpFH = -1;
+    // bIdSet is used for finding buffers that are available to be pushed to disk.
+    // these should provide the oldest buffers that have not been deleted or written
+    // to disk.
+    BufIdSet bIdSet; 
+
+    // the threads that write buffers to disk
+    std::vector<std::thread> cacheThreads;
+
+    bool stopCacheThreadsFlag;
     
 public:
     /* 
@@ -152,8 +149,12 @@ public:
     BufferManager(size_t bufferMem=0) {
 	bufMem = bufferMem;
 	availMem = bufferMem;
+	sdb.setup("js2cache");
     }
 
+    
+
+    // set the available buffer memory
     void setMem(size_t bufferMem) {
 	// if this is setting the buffer memory lower than it was previously
 	// it can take available memory negative.
@@ -204,7 +205,47 @@ public:
 
     // deleting a buffer group
     void deleteBufferGroup(BufferId bId);
+
+    // set up and clean up on disk buffers.
+    int setupDiskBuffer(char *path);
+    int cleanupDiskBuffer();
+
+    // get a buffer that is available to be written to disk.
+    // The buffer will be set as PROCESSING before being returned
+    //
+    // returns 1 if bId and bStat are valid or 0 if no buffers are available to be written.
+    //
+    // After the buffer has been cached call markWritten() so that the status is updated.
+    int getBufferToCache(BufferId *bId, BufferStat *bStat);
+    void markWritten(BufferId bId);
     
+    // try and cache a buffer to disk.
+    int writeABuffer();
+
+    // caching control threads.  Only call these from the main thread (ie they're not thread safe!)
+    
+    // start a disk caching thread 
+    int startCachingThread();
+
+    // this is what gets run by startCachingThread()
+    void cachingThreadRun();
+
+    // stop all caching threads and wait for them to finish
+    void stopAllCachingThreads();
+
+    // set the target amount of buffers in memory.  If there is more memory in use,
+    // the caching thread(s) will try to push buffers that are not currently in use
+    // to disk.  If all of the worker threads are stopped, setting this to 0 should
+    // encourage the caching thread(s) to cache all extant buffers.
+    void setTargetMemAvail(size_t mem);
+
+    // wait for the caching threads to reach their target.
+    void waitForCachingTarget();
+
+    // wait for any of the events the caching thread needs to worry about
+    // returns 1 if buffers need to be written or 0 if the caching thread
+    // needs to quit
+    int waitForCachingNeededOrStopEvent();
 
 private:
     BufferSequence & traverseToBufferSeq(BufferId bId);

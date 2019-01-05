@@ -15,6 +15,10 @@ void cleanup() {
 	if (t.type == TaskItem::None)
 	    break;
     }
+
+    // now shut down the worker threads.
+    // note that we can't shut down the disk threads yet because they may be needed
+    // while displaying the solution.
     for (int i = 0; i < numThreads; ++i) {
 	TaskItem t;
 	t.type = TaskItem::Shutdown;
@@ -23,6 +27,10 @@ void cleanup() {
 
     for (int i = 0; i < numThreads; ++i)
 	threads[i].join();
+}
+
+void finalCleanup() {
+    bufMan.stopAllCachingThreads();
 }
 
 int startLevel(unsigned int stepGroup, unsigned int step) {
@@ -236,6 +244,7 @@ void TaskManager::lookForWork_stage_1(int sg) {
 
 	WorkerThread w;
 	w.printBuffer(bufMan.finalBufId(sg, curStep-1));
+	finalCleanup();
 	exit(0);
     } else if (stragglerCount[sg] > 1) {  // do the final straggler merge
 	TaskItem ti;
@@ -276,6 +285,7 @@ void TaskManager::lookForWork_stage_1(int sg) {
 		    BufferId(sg, curStep, ml, g).print();
 		    printf("\n");
 		    cleanup();
+		    finalCleanup();
 		    exit(0);
 		}
 		     
@@ -316,6 +326,7 @@ void TaskManager::lookForWork_stage_2(int sg) {
 	cleanup();
 	WorkerThread w;
 	w.printBuffer(bufMan.finalBufId(sg, curStep-1));
+	finalCleanup();
 	exit(0);
     }
 
@@ -382,6 +393,7 @@ void TaskManager::handleWin(TaskItem t) {
     } else {
 	showWin(t.foundWin.bId, t.foundWin.offset);
     }
+    finalCleanup();
     exit(0);
     
 }

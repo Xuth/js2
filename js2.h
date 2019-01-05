@@ -117,6 +117,8 @@ extern int checkFullTree;
 extern long int bigmem;
 extern long int smallmem;
 extern int numThreads;
+extern int diskThreads;
+extern int cachePercent;
 
 #if 0
 // no longer relevant

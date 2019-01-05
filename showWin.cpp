@@ -102,6 +102,7 @@ void showWin(BufferId inBId, uint64_t offset) {
 	    offCopy--;
 	}
 	uint8_t *pos = crct.getNext();
+	crct.finish();
 	memcpy(curSeq, pos, compressedPuzSize);
 	curSeq += compressedPuzSize;
 

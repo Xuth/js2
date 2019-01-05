@@ -254,8 +254,14 @@ int readParms(int argc, char *argv[]) {
 	else if (EatString(&sptr, "SMALLMEM:", 0)) {
 	    EatLong(&sptr, &smallmem, 1);
 	}
+	else if (EatString(&sptr, "CACHEPERCENT:", 0)) {
+	    EatInt(&sptr, &cachePercent, 1);
+	}
 	else if (EatString(&sptr, "NUMTHREADS:", 0)) {
 	    EatInt(&sptr, &numThreads, 1);
+	}
+	else if (EatString(&sptr, "DISKTHREADS:", 0)) {
+	    EatInt(&sptr, &diskThreads, 1);
 	}
 	else if (EatString(&sptr, "HEXPRINT:", 0)) {
 	    hexPrint = 1;

@@ -10,6 +10,7 @@
 #include <string.h>
 #include <thread>
 #include <vector>
+#include <assert.h>
 
 char TITLE_TXT[] = "js2 (formerly jim'slide)";
 char VERSION_TXT[] = "version 1.5";
@@ -49,6 +50,9 @@ int directed;
 int cutoffStep;
 int checkFullTree;
 int numThreads = 3;
+int diskThreads = 1;
+int cachePercent=50;
+
 
 PieceIdType *baseBoard;
 
@@ -80,6 +84,10 @@ int main(int argc, char *argv[]) {
 	threads.emplace_back(&WorkerThread::run, &workerList[i]);
     }
 
+    bufMan.setTargetMemAvail(bigmem * cachePercent / 100);
+    for (int i = 0; i < diskThreads; ++i)
+	bufMan.startCachingThread();
+
     TaskManager taskMan;
     taskMan.run();
     
@@ -89,7 +97,7 @@ int main(int argc, char *argv[]) {
 void test(int t, const char *s) {
     if(!t) {
 	printf("%s\n", s);
-	exit(1);
+	assert(0);
     }
 }
 
@@ -659,6 +667,8 @@ void ComprehensiveReadCompressTool::start(BufferId inBId) {
     r = bStat.data;
     end = r + bStat.len;
     moreBuffers = bStat.buffersRemaining ? 1 : 0;
+    if (moreBuffers)
+	test(bId.mergeLevel != 0, "There shouldn't be multiple buffers in a group on mergeLevel 0");
     lastReturned = 0;
 }
 
@@ -925,6 +935,9 @@ int WorkerThread::findDuplicate(BufferId bId1, BufferId bId2, BufferId *outBId, 
 	    // buffer but we have a count from the first buffer, put down the first buffer and offset
 	    // from that.
 	    *outBId = bId1;
+	    crct1.finish();
+	    crct2.finish();
+
 	    // offset already set
 	    return 1;
 	}
