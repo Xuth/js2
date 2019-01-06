@@ -7,6 +7,7 @@
 
 //#define DEBUGPRINT
 
+
 void BufferManager::useMem(size_t bytes) {
     std::unique_lock<std::mutex> lock(memMutex);
     while(1) {

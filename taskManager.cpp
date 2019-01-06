@@ -48,7 +48,8 @@ int startLevel(unsigned int stepGroup, unsigned int step) {
 	printf ("no solutions found on step %u!!!", step);
 	return 0;
     }
-    printf("level: %d positions: %lu at time: %ld\n", step, positions, time(NULL) - startTime);
+    printf("level: %d positions: %" PRIu64 " at time: %ld\n",
+	   step, positions, (long)(time(NULL) - startTime));
     uint64_t boardsPerTask = bgStat.positions / numThreads / 2;
     if (boardsPerTask < 20)
 	boardsPerTask = 20;

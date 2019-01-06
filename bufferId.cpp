@@ -3,6 +3,7 @@
 #include <functional>
 #include <string.h>
 #include <stdio.h>
+#include <inttypes.h>
 
 size_t hash(BufferId bId) {
     uint64_t *bPtr = (uint64_t *)&bId;
@@ -23,6 +24,7 @@ void BufferId::print() {
 	return;
     }
 
-    printf("<BufferId %u:%u:%u:%u:%u>", stepGroup, step, mergeLevel, group, buf);
+    printf("<BufferId %" PRIu8 ":%" PRIu32 ":%" PRIu16 ":%" PRIu32 ":%" PRIu32 ">",
+	   stepGroup, step, mergeLevel, group, buf);
 }
 

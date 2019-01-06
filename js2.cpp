@@ -1015,7 +1015,7 @@ int WorkerThread::checkIfWin() {
 
 void WorkerThread::run() {
 
-    printf("starting run() in a worker thread\n");
+    //printf("starting run() in a worker thread\n");
 
     while(1) {
 	TaskItem t = JobQueue.get();
@@ -1070,7 +1070,7 @@ void WorkerThread::run() {
 	    
 	case TaskItem::Shutdown:
 	    shutdown = 1;
-	    printf("got shutdown request\n");
+	    //printf("got shutdown request\n");
 	    break;
 
 	default:
