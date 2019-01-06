@@ -66,6 +66,12 @@ int readParms(int argc, char *argv[]) {
 	
 	sptr = instring;
 	
+	// check for comments
+	if (EatString(&sptr, "!", 0))
+	    continue;
+	if (EatString(&sptr, "#", 0))
+	    continue;
+	
 	if (EatString(&sptr, "XSIZE:", 0)) {
 	    EatInt(&sptr, &xsize, 1);
 	    xsize += 2;
@@ -277,6 +283,10 @@ int readParms(int argc, char *argv[]) {
 	    bigStorage = 1;
 	}
 #endif
+	else {
+	    printf("unknown command: %s\n", sptr);
+	    exit(1);
+	}
     }
    
     fclose(infile);
