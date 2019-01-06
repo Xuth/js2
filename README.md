@@ -8,7 +8,7 @@ My priorities for this version are
 
 * to have similar functionality
 * be easier to work with
-* while being built for modern architectures (multithreaded, assume more RAM, more linear memory accesses)
+* while being built for modern architectures (multithreaded, assume more RAM, linear memory accesses are much faster than chasing pointers)
 * and being at least as fast as the original codebase in the single thread case.
 
 look at readme.txt for usage instructions.
