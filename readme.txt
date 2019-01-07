@@ -203,12 +203,6 @@ hexprint:
 	This is good for puzzles with many pieces.
 
 
-winonly:
-  bigmem: n
-  smallmem: n
-  numthreads: n
-  diskthreads: n
-  cachepercent: n
 Solver Flags and Parameters
 
 bigmem: n
