@@ -1,14 +1,15 @@
 #include "bufferToolDisk.h"
 #include "js2.h"
-
 #include <unistd.h>
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <string.h>
 #include <stdlib.h>
+
+#ifndef _WIN32
 #include <ftw.h>
 #include <libgen.h>
-
+#endif
 //#define SLOW_DISK
 #define SLOW_DISK_WAIT 100000
 
@@ -26,12 +27,13 @@ int mkpath(char *dir, mode_t mode)
 
     if (!stat(dir, &sb))
         return 0;
-
+#ifndef _WIN32
     mkpath(dirname(strdupa(dir)), mode);
-
+#endif
     return mkdir(dir, mode);
 }
 
+#ifndef _WIN32
 // rmTree() shamelessly stolen from
 // https://stackoverflow.com/questions/2256945/removing-a-non-empty-directory-programmatically-in-c-or-c
 static int rmFiles(const char *pathname, const struct stat *sbuf, int type, struct FTW *ftwb) {
@@ -52,6 +54,11 @@ int rmTree(char *path) {
 
     return 1;
 }
+#else
+int rmTree(char *path) {
+    return 1;
+}
+#endif
 
 int SimpleDiskBuffer::setup(const char *_path) {
     path = strdup(_path);
