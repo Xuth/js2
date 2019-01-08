@@ -29,8 +29,11 @@ int mkpath(char *dir, mode_t mode)
         return 0;
 #ifndef _WIN32
     mkpath(dirname(strdupa(dir)), mode);
-#endif
     return mkdir(dir, mode);
+#else
+    return mkdir(dir);
+#endif
+
 }
 
 #ifndef _WIN32
