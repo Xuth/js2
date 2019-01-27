@@ -184,6 +184,7 @@ struct BufferHeap {
     void setBId(BufferId b, int slot);
     uint8_t *getFirst();
     uint8_t *getNext();
+    void finish();
 };
 
 

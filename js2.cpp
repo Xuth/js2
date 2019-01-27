@@ -725,9 +725,13 @@ BufferHeap::BufferHeap(int count) {
     }
 }
 
-BufferHeap::~BufferHeap() {
+void BufferHeap::finish() {
     for (int i = 0; i < bufCount; ++i)
 	crct[heap[i]].finish();
+}
+
+BufferHeap::~BufferHeap() {
+    finish();
     free(crct);
 }
 
@@ -887,6 +891,7 @@ void WorkerThread::dedupGen(BufferId inBId, BufferId *genBIds, int genCount, Buf
 	    inBuf = crct.getNext();
 	    if (NULL == inBuf) {  // cleanup and we're done
 		crct.finish();
+		bh.finish();
 		bufMan.insertBuffer(outBId, posBuffer, outCt.r-posBuffer, outPos);
 		bufMan.setGroupFinished(outBId);
 		TaskItem t;
